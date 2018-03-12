@@ -18,5 +18,5 @@ install: ["ocaml" "setup.ml" "-install"]
 depends: [
   "conf-dds"
   "ctypes"
-  "cytpes-foreign"
+  "cytpes.foreign"
 ]

@@ -1,0 +1,24 @@
+# -*-Makefile-*-
+#!/bin/bash
+
+
+if [ "$(uname)" == "Darwin" ]; then
+    BIT_LIB=libddstubs.dylib
+elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+    BIT_LIB=libddstubs.so
+fi
+
+pushd &> /dev/null
+cd stubs
+rm -Rf build
+mkdir build
+cd build
+cmake ..
+make
+if [ "$(uname)" == "Darwin" ]; then
+    cp ${BIT_LIB} /usr/local/lib
+elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+    sudo cp ${BIT_LIB} /usr/local/lib
+fi
+
+popd &> /dev/null

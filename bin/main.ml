@@ -1,4 +1,4 @@
-open Ocamldds
+open Ocamlcdds
 open Ctypes
 open Foreign
 

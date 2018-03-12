@@ -2,8 +2,8 @@
 
 (executables
  ((names (main))
-  (libraries (ocamldds))))
+  (libraries (ocamlcdds))))
 
 (install
  ((section bin)
-  (files ((main.exe as ocamldds)))))
+  (files ((main.exe as main)))))

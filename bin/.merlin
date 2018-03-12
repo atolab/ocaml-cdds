@@ -1,14 +1,15 @@
-B ../_build/default/bin
-B ../_build/default/lib
+B ../_build/default/bin/.main.eobjs
+B ../_build/default/lib/.ocamlcdds.objs
+B /Users/kydos/.opam/system/lib/bytes
+B /Users/kydos/.opam/system/lib/ctypes
+B /Users/kydos/.opam/system/lib/integers
+B /usr/local/lib/ocaml
+B /usr/local/lib/ocaml/threads
 FLG -w -40
-PKG bigarray
-PKG bytes
-PKG ctypes
-PKG ctypes.foreign
-PKG ctypes.foreign.base
-PKG ctypes.foreign.threaded
-PKG integers
-PKG threads
-PKG threads.posix
-PKG unix
+S .
 S ../lib
+S /Users/kydos/.opam/system/lib/bytes
+S /Users/kydos/.opam/system/lib/ctypes
+S /Users/kydos/.opam/system/lib/integers
+S /usr/local/lib/ocaml
+S /usr/local/lib/ocaml/threads
