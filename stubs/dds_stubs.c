@@ -5,6 +5,21 @@
 
 #define MAX_SAMPLES 1
 
+/*
+ * Allocators and de-allocators
+ */
+
+dds_bit_bytes*
+c_dds_bit_bytes__alloc() {
+ return ((dds_bit_bytes*) dds_alloc (sizeof (dds_bit_bytes)));
+}
+
+uint8_t*
+c_dds_bit_bytes_allocbuf(size_t len) {
+  return ((uint8_t (*)) dds_alloc ((len) * sizeof (uint8_t)));
+}
+
+///// --- below this line we should remove all deps.
 dds_qos_t*
 create_dds_state_qos() {
   dds_qos_t* state_qos = dds_qos_create();

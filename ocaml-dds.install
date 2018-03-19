@@ -1,7 +1,0 @@
-lib: [
-  "_build/install/default/lib/ocaml-dds/META" {"META"}
-  "_build/install/default/lib/ocaml-dds/opam" {"opam"}
-]
-bin: [
-  "_build/install/default/bin/ocamldds" {"ocamldds"}
-]

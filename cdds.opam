@@ -1,0 +1,19 @@
+opam-version: "1.2"
+name: "cdds"
+version:"0.1"
+maintainer: "angelo.corsaro@adlinktech.com"
+homepage: "http://zenoh.io"
+license: "LGPL 2.1"
+
+build: [
+ ["jbuilder" "subst"] {pinned}
+ ["jbuilder" "build" "-p" name "-j" jobs]
+]
+
+depends: [
+  "conf-dds"
+  "ctypes"
+  "cytpes-foreign"
+]
+
+available: [ocaml-version >= "4.03.0"]

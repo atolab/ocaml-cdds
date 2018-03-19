@@ -4,6 +4,15 @@
 #include "ddsc/dds.h"
 #include "bit.h"
 
+/*
+ * Allocators and de-allocators
+ */
+
+dds_bit_bytes*
+c_dds_bit_bytes__alloc();
+
+uint8_t*
+c_dds_bit_bytes_allocbuf(size_t len);
 
 
 const dds_topic_descriptor_t* skey_bvalue();

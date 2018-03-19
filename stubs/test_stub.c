@@ -23,6 +23,9 @@ void run_pub() {
 
 void listener(dds_entity_t rd, void* attch) {
   printf("Listener called!\n");
+  dds_bit_SKeySValue* sample = s_take_sksv(rd);
+  if (sample != NULL)
+    printf(">> (key: %s, value: - %s)\n", sample->key, sample->value);
 }
 
 void run_sub() {
@@ -30,13 +33,14 @@ void run_sub() {
   dds_entity_t s = s_create_sub(dp);
   // dds_entity_t s = s_create_sub_wp(dp, "alpha");
   dds_entity_t t = s_create_topic_sksv(dp, "KeyValue");
-  
-  dds_entity_t r = s_create_state_reader_wl(s, t, listener);
+
+  dds_listener_t* l = dds_listener_create(NULL);
+  dds_lset_data_available(l, listener);
+
+  dds_entity_t r = dds_create_reader(s, t, NULL, l);
 
   while (true) {
-      // dds_bit_SKeySValue* sample = s_take_sksv(r);
-      // if (sample != NULL)
-        // printf(">> (key: %s, value: - %s)\n", sample->key, sample->value);
+
       sleep(5);
   }
 }
