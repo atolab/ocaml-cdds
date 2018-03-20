@@ -1,0 +1,22 @@
+opam-version: "1.2"
+name: "conf-dds"
+version:"0.1"
+maintainer: "angelo@icorsaro.net"
+homepage: "http://www.icorsaro.net"
+license: "LGPL"
+
+build: [
+  ["jbuilder" "build" "--only" "odds" "--root" "." "-j" jobs]
+]
+build: [
+  ["ocaml" "setup.ml" "-configure" "--prefix" prefix]
+  ["ocaml" "setup.ml" "-build"]
+]
+
+install: ["ocaml" "setup.ml" "-install"]
+
+depends: [
+  "conf-dds"
+  "ctypes"
+  "cytpes.foreign"
+]
