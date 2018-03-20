@@ -1,4 +1,6 @@
 open Ctypes
+open Foreign
+
 
 module PolicyId = struct
   include Int32
@@ -28,6 +30,61 @@ module PolicyId = struct
   let lifespan = of_int 21
   let durability = of_int 22
 end
+
+module Qos : sig
+  type t
+  val t : t structure typ
+  val none : t structure ptr
+  val make :  unit -> t structure ptr
+  val destroy : t structure ptr -> unit
+end = struct
+  type t
+  let t : t structure typ = structure "dds_qos_t"
+  let none = from_voidp t null
+
+  let create_qos =
+      foreign "dds_qos_create" (void @-> returning @@ ptr t)
+
+  let delete_qos =
+    foreign "dds_qos_delete" (ptr t @-> returning void)
+
+  let make = create_qos
+
+  let destroy = delete_qos
+end
+
+(*
+ * QoS Operations
+ *)
+
+
+let qset_durability =
+  foreign "dds_qset_durability" (ptr Qos.t @-> PolicyId.t @-> returning void)
+
+let qset_history =
+  foreign "dds_qset_history" (ptr Qos.t @-> PolicyId.t @-> int32_t @-> returning void)
+
+let qset_reliability =
+  foreign "dds_qset_reliability" (ptr Qos.t @-> PolicyId.t @-> Duration.t @-> returning void)
+
+let qset_ownership =
+  foreign "dds_qset_ownership" (ptr Qos.t @-> PolicyId.t  @-> returning void)
+
+let qset_ownership_strength =
+  foreign "dds_qset_ownership_strength" (ptr Qos.t @-> PolicyId.t @-> int32_t @-> returning void)
+
+let qset_destination_order =
+  foreign "dds_qset_destination_order" (ptr Qos.t @-> PolicyId.t @-> returning void)
+
+let _qset_partition =
+  foreign "dds_qset_partition" (ptr Qos.t @-> uint32_t @-> ptr string @-> returning void)
+
+let qset_partition qos plist =
+  let module Array = CArray in
+  let len = Unsigned.UInt32.of_int @@ List.length plist in
+  let parr  = Array.of_list string plist in
+  ignore ( _qset_partition qos len ( Array.start parr))
+
 
 module Durability = struct
   module Kind = struct
@@ -89,11 +146,3 @@ let set_policies qos plist =
        | Policy.Reliability r -> ()
        | Policy.Durability d -> ())
     plist
-
-
-module Qos = struct
-  type t
-  let t : t structure typ = structure "dds_qos_t"
-
-  let none = from_voidp t null
-end
