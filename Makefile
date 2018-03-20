@@ -3,12 +3,16 @@
 BUILD=jbuilder build --dev
 CLEAN= jbuilder clean
 TEST=jbuilder runtest -j1 --no-buffer --dev
+INSTALL=jbuilder install
 
 all:
 		${BUILD}
 
 test:
 		${TEST}
+
+install:
+	${INSTALL}
 
 clean:
 	${CLEAN}

@@ -1,5 +1,4 @@
 open Ctypes
-open PosixTypes
 open Foreign
 
 
