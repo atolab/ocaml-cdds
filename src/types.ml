@@ -1,5 +1,4 @@
 open Ctypes
-open PosixTypes
 open Foreign
 
 
@@ -27,6 +26,8 @@ module DomainId = struct
   include Int32
   let t = int32_t
   let default = of_int 0
+
+  let of_int i = Int32.of_int i
 end
 
 
@@ -45,7 +46,7 @@ module SampleState = struct
   let t = int32_t
   let read  = of_int 0x01
   let not_read = of_int 0x02
-  let all = of_int 0x03
+  let any = of_int 0x03
 end
 
 module ViewState = struct
@@ -63,6 +64,17 @@ module InstanceState = struct
   let disposed = of_int 0x20
   let no_writers = of_int 0x40
   let any = of_int @@ 0x10 lor 0x20 lor  0x40
+end
+
+module StatusSelector = struct
+  type t = {s : SampleState.t; i : InstanceState.t; v : ViewState.t}
+  let make s i v = {s; i; v}
+  let to_int sel =  (Int32.to_int sel.s) lor (Int32.to_int sel.i) lor (Int32.to_int sel.v)
+  let of_int n = {s = Int32.of_int @@ n land 0x03; i = Int32.of_int @@ n land 0x70; v = Int32.of_int @@ n land 0x00c}
+
+  let any = {s = SampleState.any; i = InstanceState.any; v = ViewState.any}
+  let fresh = {s = SampleState.not_read; i = InstanceState.alive; v = ViewState.any}
+  let disposed = {s = SampleState.any; i = InstanceState.disposed; v = ViewState.any}
 end
 
 module ReturnValue = struct
@@ -96,28 +108,31 @@ end
 
 
 module SKeySValue = struct
-  type t
-  let t : t structure typ = structure "dds_bit_SKeySValue"
-  let key  = field t "key" string
-  let value = field t "value" string
-  let () = seal t
+  module Type = struct
+    type t
+    let t : t structure typ = structure "dds_bit_SKeySValue"
+    let key  = field t "key" string
+    let value = field t "value" string
+    let () = seal t
 
-  let desc = foreign_value "dds_bit_SKeySValue_desc" TopicDescriptor.t
+    let desc = foreign_value "dds_bit_SKeySValue_desc" TopicDescriptor.t
+  end
 
   let make k v =
-    let e = make t in
-    setf e key k ;
-    setf e value v;
+    let e = make Type.t in
+    setf e Type.key k ;
+    setf e Type.value v;
     e
 
-  let make_array n = CArray.make t n
+  let make_array n = CArray.make Type.t n
 
-  let get_key v = getf v key
-  let get_value v = getf v value
+  let make_ptr_array n = CArray.make (ptr Type.t) n
 
-  let set_key kv k = setf kv key k
-  let set_value kv v = setf kv value v
+  let key v = getf v Type.key
+  let value v = getf v Type.value
 
+  let set_key kv k = setf kv Type.key k
+  let set_value kv v = setf kv Type.value v
 end
 
 module BitBytes = struct
@@ -140,23 +155,32 @@ module SKeyBValue = struct
 end
 
 module SampleInfo = struct
-  type t
-  let t : t structure typ = structure "dds_sample_info"
-  let sampe_state = field t "sample_state" SampleState.t
-  let view_state = field t "view_state" ViewState.t
-  let instance_statew = field t "instance_state" InstanceState.t
-  let valid_data = field t "valid_data" bool
-  let source_timestamp = field t "source_timestamp" Time.t
-  let instance_handle = field t "instance_handle" InstanceHandle.t
-  let publication_handle = field t "publication_handle" InstanceHandle.t
-  let disposed_generation_count = field t "disposed_generation_count" uint32_t
-  let no_writers_generation_count = field t "no_writers_generation_count" uint32_t
-  let sample_rank = field t "sample_rank" uint32_t
-  let generation_rank = field t "generation_rank" uint32_t
-  let absolute_generation_rank = field t "absolute_generation_rank" uint32_t
-  let reception_timestamp = field t "reception_timestamp" Time.t
-  let () = seal t
+  module Type = struct
+    type t
+    let t : t structure typ = structure "dds_sample_info"
+    let sample_state = field t "sample_state" SampleState.t
+    let view_state = field t "view_state" ViewState.t
+    let instance_state = field t "instance_state" InstanceState.t
+    let valid_data = field t "valid_data" bool
+    let source_timestamp = field t "source_timestamp" Time.t
+    let instance_handle = field t "instance_handle" InstanceHandle.t
+    let publication_handle = field t "publication_handle" InstanceHandle.t
+    let disposed_generation_count = field t "disposed_generation_count" uint32_t
+    let no_writers_generation_count = field t "no_writers_generation_count" uint32_t
+    let sample_rank = field t "sample_rank" uint32_t
+    let generation_rank = field t "generation_rank" uint32_t
+    let absolute_generation_rank = field t "absolute_generation_rank" uint32_t
+    let reception_timestamp = field t "reception_timestamp" Time.t
+    let () = seal t
+  end
 
-  let make_array n = CArray.make t n
 
+  let make () = make Type.t
+
+  let make_array n = CArray.make Type.t n
+
+  let valid_data si = getf si Type.valid_data
+  let sample_state si = getf si Type.sample_state
+  let view_state si = getf si Type.view_state
+  let instance_state si = getf si Type.instance_state
 end
