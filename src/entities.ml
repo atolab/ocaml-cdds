@@ -437,16 +437,9 @@ let _return_loan =
 let return_loan e samples stored_samples = _return_loan e (to_voidp @@ CArray.start samples) stored_samples
 
 
-module DDSEvent = struct
-  type t =
-    | DataAvailable
-    | LivelinessLost
-    | LivelinessChanged
-    | PublicationMatched
-    | SubscriptionMatched
-end
-
 module Reader = struct
+  type daf = int32
+
   type t = {
     eid: Entity.t;
     samples: SKeySValue.Type.t structure ptr carray;
@@ -457,14 +450,22 @@ module Reader = struct
     mutable on_liveliness_changed: Entity.t -> LivelinessChanged.status structure -> unit ptr -> unit
   }
 
+  type event =
+      | DataAvailable of  t
+      | LivelinessLost of t * LivelinessLost.status structure
+      | LivelinessChanged of  t * LivelinessChanged.status structure
+      | PublicationMatched of  t * PublicationMatched.status structure
+      | SubscriptionMatched of t * SubscriptionMatched.status structure
 
-  let make ?(max_samples=128) ?(policies=[]) sub topic  =
+
+  let make ?(max_samples=128) ?(policies=QosPattern.state) sub topic  =
     let qos = from_policies policies in
     let eid = create_reader sub topic qos Listener.none in
     let samples = SKeySValue.make_ptr_array max_samples in
     let info = CArray.make SampleInfo.Type.t max_samples in
     let listener = ListenerSet.make () in
-    { eid; samples; info; max_samples; listener; on_data_available = (fun _ _ -> ()) ; on_liveliness_changed = (fun _ _ _ -> ()) }
+    let r = { eid; samples; info; max_samples; listener; on_data_available = (fun _ _ -> ()); on_liveliness_changed = (fun _ _ _ -> ()) } in
+    r
 
   let read_or_take_n dr n action selector =
     let rec collect_samples kvi n samples info  = match n with
@@ -503,19 +504,13 @@ module Reader = struct
   let selective_read sel dr = read_or_take_n dr dr.max_samples read_mask_wl sel
   let selctive_take sel dr = read_or_take_n dr dr.max_samples take_mask_wl sel
 
-  let listen dr evt callback =
-    match evt with
-    | DDSEvent.DataAvailable ->
-        let trampoline = fun _ _ -> callback dr in
-        dr.on_data_available <- trampoline ;
-        let lset = dr.listener in
-        lset_data_available lset dr.on_data_available;
-        set_listener dr.eid lset
-    | DDSEvent.LivelinessChanged ->
-      let trampoline = fun _ _ _ -> callback dr in
-      dr.on_liveliness_changed <- trampoline ;
-      let lset = dr.listener in
-      lset_liveliness_changed lset dr.on_liveliness_changed ;
-      set_listener dr.eid lset
-    | _ -> Int32.of_int 0
+  let react dr callback =
+    dr.on_data_available <- (fun _ _ ->  callback (DataAvailable dr)) ;
+    dr.on_liveliness_changed <- (fun _ s _ ->  callback @@ LivelinessChanged (dr, s)) ;
+    lset_data_available dr.listener dr.on_data_available ;
+    lset_liveliness_changed dr.listener dr.on_liveliness_changed ;
+    ignore (set_listener dr.eid dr.listener)
+
+  let deaf dr  = reset_listener dr.listener
+
 end

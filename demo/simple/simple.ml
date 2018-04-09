@@ -7,11 +7,11 @@ let writer () =
   let dp = Participant.make DomainId.default in
   Printf.printf "The dp = %d \n" (DomainId.to_int dp) ;
   let name = "KeyValue" in
-  let topic = Topic.make dp name [] in
+  let topic = Topic.make dp name in
   Printf.printf "Created topic %d\n" @@ Entity.to_int topic ;
-  let pub = Publisher.make dp [] in
+  let pub = Publisher.make dp in
   Printf.printf "The pub = %d\n" (Entity.to_int pub) ;
-  let w = Writer.make dp topic [] in
+  let w = Writer.make dp topic in
   Printf.printf "Created Writer %d\n" @@ Int32.to_int w ;
   let rec loop =function
     | 0 -> ()
@@ -31,18 +31,20 @@ let writer () =
 let handle_data dr  =
   Reader.read dr  |> List.iter (fun ((k, v), i) ->  Printf.printf "\tkey = %s\n\tvalue= %s\n" k v)
 
-
+let handle_liveliness _ =
+  print_endline "liveliness changed!"
 
 let reader () =
   let dp = Participant.make DomainId.default in
   let name = "KeyValue" in
-  let topic = Topic.make dp name [] in
-  let sub = Subscriber.make dp [] in
-  let r = Reader.make sub topic [] Listener.none in
+  let topic = Topic.make dp name in
+  let sub = Subscriber.make dp in
+  let r = Reader.make sub topic in
   let rec loop =function
     | 0 -> ()
     | n ->
       handle_data r ;
+      print_endline "-" ;
       Unix.sleepf 0.1;
       if n mod 100 = 0 then
         begin
@@ -59,14 +61,20 @@ let reader_wl () =
   let name = "KeyValue" in
   let topic = Topic.make dp name  in
   let sub = Subscriber.make dp  in
-  let r = Reader.make dp topic  in
-  let _ = Reader.on_data_available r handle_data in  
+  let r = Reader.make sub topic  in
+
+  Reader.react r (fun e -> match e with
+      | Reader.DataAvailable dr ->
+        Reader.read dr  |> List.iter (fun ((k, v), i) ->  Printf.printf "\tkey = %s\n\tvalue= %s\n" k v ; print_endline "<->")
+      | Reader.LivelinessChanged (dr, s) -> print_endline "Liveliness Changed!" ;
+      | _ -> ()
+    ) ;
 
   let rec loop =function
     | 0 -> ()
     | n ->
       Unix.sleepf 1.0 ;
-      (* print_endline "done sleeping..."; *)
+      print_endline "done sleeping...";
       loop @@ n - 1
   in loop 100000
 
