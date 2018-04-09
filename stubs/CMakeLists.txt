@@ -7,6 +7,10 @@ if (NOT TARGET CycloneDDS::ddsc)
     find_package(CycloneDDS REQUIRED PATHS "${CMAKE_SOURCE_DIR}/../../")
 endif()
 
+include_directories(
+        "/usr/local/include"
+)
+
 # This is a convenience function, provided by the CycloneDDS package,
 # that will supply a library target related the the given idl file.
 # In short, it takes the idl file, generates the source files with
