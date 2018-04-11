@@ -1,5 +1,3 @@
-open Ctypes
-open PosixTypes
 open Cdds
 
 
@@ -29,7 +27,7 @@ let writer () =
   print_endline "Released QoS!"
 
 let handle_data dr  =
-  Reader.read dr  |> List.iter (fun ((k, v), i) ->  Printf.printf "\tkey = %s\n\tvalue= %s\n" k v)
+  Reader.read dr  |> List.iter (fun ((k, v), _) ->  Printf.printf "\tkey = %s\n\tvalue= %s\n" k v)
 
 let handle_liveliness _ =
   print_endline "liveliness changed!"
@@ -65,8 +63,8 @@ let reader_wl () =
 
   Reader.react r (fun e -> match e with
       | Reader.DataAvailable dr ->
-        Reader.read dr  |> List.iter (fun ((k, v), i) ->  Printf.printf "\tkey = %s\n\tvalue= %s\n" k v ; print_endline "<->")
-      | Reader.LivelinessChanged (dr, s) -> print_endline "Liveliness Changed!" ;
+        Reader.read dr  |> List.iter (fun ((k, v), _) ->  Printf.printf "\tkey = %s\n\tvalue= %s\n" k v ; print_endline "<->")
+      | Reader.LivelinessChanged (_, _) -> print_endline "Liveliness Changed!" ;
       | _ -> ()
     ) ;
 

@@ -5,7 +5,7 @@ B /Users/kydos/.opam/system/lib/integers
 B /usr/local/lib/ocaml
 B /usr/local/lib/ocaml/threads
 B _build/default/.simple.eobjs
-FLG -w -40
+FLG -w @a-4-29-40-41-42-44-45-48-58-59-60-40 -strict-sequence -strict-formats -short-paths -keep-locs
 S .
 S /Users/kydos/.opam/system/lib/bytes
 S /Users/kydos/.opam/system/lib/cdds
