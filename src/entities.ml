@@ -357,8 +357,9 @@ let lset_data_on_readers =
 let lset_sample_lost =
   foreign "dds_lset_sample_lost" (ptr Listener.t @-> funptr  ~thread_registration:true ~runtime_lock:true SampleLost.callback @-> returning void)
 
+(* Call without lock otherwise if using libuv will have a lock *)
 let lset_data_available =
-  foreign "dds_lset_data_available" (ptr Listener.t @-> funptr ~thread_registration:true ~runtime_lock:true  data_available_callback_t @-> returning void)
+  foreign "dds_lset_data_available" (ptr Listener.t @-> funptr ~thread_registration:true ~runtime_lock:false  data_available_callback_t @-> returning void)
 
 let lset_sample_rejected =
   foreign "dds_lset_sample_rejected" (ptr Listener.t @-> funptr  ~thread_registration:true ~runtime_lock:true SampleRejected.callback @-> returning void)
