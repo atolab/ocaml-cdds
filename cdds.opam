@@ -11,9 +11,9 @@ build: [
 ]
 
 depends: [
-  "conf-dds"
+  "conf-cdds"
   "ctypes"
-  "cytpes-foreign"
+  "ctypes-foreign"
 ]
 
 available: [ocaml-version >= "4.03.0"]
