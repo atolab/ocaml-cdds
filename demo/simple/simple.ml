@@ -1,6 +1,5 @@
 open Cdds
 
-
 let writer () =
   let dp = Participant.make DomainId.default in
   Printf.printf "The dp = %d \n" (DomainId.to_int dp) ;

@@ -11,6 +11,7 @@ build: [
 ]
 
 depends: [
+  "jbuilder"
   "conf-cdds"
   "ctypes"
   "ctypes-foreign"
