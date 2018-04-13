@@ -142,7 +142,7 @@ module BitBytes = struct
     let t : t structure typ = structure "dds_bit_bytes"
     let _maximum = field t "_maximum" uint32_t
     let _length = field t "_length" uint32_t
-    let _buffer = field t "_buffer"  (ptr uint8_t)
+    let _buffer = field t "_buffer"  (ptr char)
     let _release = field t "_release" bool
     let () = seal t
   end

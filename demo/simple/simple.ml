@@ -27,8 +27,7 @@ let writer () =
 
 let handle_data dr  =
   Reader.read dr  |> List.iter (fun ((k, v), _) ->
-      let vs = Ctypes.CArray.to_list v in
-      let s = List.fold_left (fun a b -> a ^ ", " ^ (Char.escaped (Char.chr @@ Unsigned.UInt8.to_int b) )) "" vs  in
+      let s = Bytes.to_string v in
       Printf.printf "\tkey = %s\n\tvalue= %s\n" k s)
 
 let handle_liveliness _ =
@@ -66,8 +65,7 @@ let reader_wl () =
   Reader.react r (fun e -> match e with
       | Reader.DataAvailable dr ->
         Reader.read dr  |> List.iter (fun ((k, v), _) ->
-            let vs = Ctypes.CArray.to_list v in
-            let s = List.fold_left (fun a b -> a ^ "" ^ (Char.escaped (Char.chr @@ Unsigned.UInt8.to_int b) )) "" vs  in
+            let s = Bytes.to_string v in
             Printf.printf "\tkey = %s\n\tvalue= %s\n" k s ; print_endline "<->")
       | Reader.LivelinessChanged (_, _) -> print_endline "Liveliness Changed!" ;
       | _ -> ()

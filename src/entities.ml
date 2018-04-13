@@ -125,14 +125,17 @@ module Writer = struct
 
 
   let write_string dw key value =
-    let xs = CArray.make uint8_t (String.length value) in
-    String.iteri (fun i c -> CArray.set xs i (Unsigned.UInt8.of_int (Char.code c)) ) value ;
+    let xs = CArray.make char (String.length value) in
+    (* String.iteri (fun i c -> CArray.set xs i (Unsigned.UInt8.of_int (Char.code c)) ) value ; *)
+    String.iteri (fun i c -> CArray.set xs i c) value ;
     let v = BitBytes.of_array xs in
     let s = SKeyBValue.make key v in
     write dw s
 
-  let write dw key value =
-    let v = BitBytes.of_array value in
+  let write dw key bs =
+    let xs = CArray.make char (Bytes.length bs) in
+    Bytes.iteri (fun i c -> CArray.set xs i c) bs ;
+    let v = BitBytes.of_array xs in
     let s = SKeyBValue.make key v in
     write dw s
 
@@ -486,12 +489,13 @@ module Reader = struct
         let k = (SKeyBValue.key s) in
         let v = (SKeyBValue.value s) in
         let len = Unsigned.UInt32.to_int @@ BitBytes.length v in
-        let xs = CArray.make uint8_t len in
+        (* let xs = CArray.make uint8_t len in *)
+        let bs = Bytes.make len (Char.chr 0) in
         let ptr = BitBytes.to_ptr v in
         for i = 0 to (len-1) do
-          CArray.set xs i !@( ptr +@ i )
+          Bytes.set bs i !@( ptr +@ i )
         done ;
-        collect_samples (((k, xs), i)::kvi) (n-1) samples info
+        collect_samples (((k, bs), i)::kvi) (n-1) samples info
     in
     if n <= dr.max_samples then
       begin
