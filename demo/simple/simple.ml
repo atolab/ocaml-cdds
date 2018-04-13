@@ -1,15 +1,13 @@
 open Cdds
 
+let dp = Participant.make DomainId.default
+let name = "KeyValue"
+let topic = Topic.make dp name
+let pub = Publisher.make dp
+let sub = Subscriber.make dp
+
 let writer () =
-  let dp = Participant.make DomainId.default in
-  Printf.printf "The dp = %d \n" (DomainId.to_int dp) ;
-  let name = "KeyValue" in
-  let topic = Topic.make dp name in
-  Printf.printf "Created topic %d\n" @@ Entity.to_int topic ;
-  let pub = Publisher.make dp in
-  Printf.printf "The pub = %d\n" (Entity.to_int pub) ;
   let w = Writer.make dp topic in
-  Printf.printf "Created Writer %d\n" @@ Int32.to_int w ;
   let rec loop =function
     | 0 -> ()
     | n ->
@@ -18,7 +16,7 @@ let writer () =
     let r = Writer.write_string w k v in
     Printf.printf "Write %d returned  %d"  n @@ Int32.to_int r ;
     print_endline "" ;
-    Unix.sleepf 0.01 ;
+    Unix.sleepf 0.1 ;
     loop @@ n - 1
   in loop 100000 ;
 
@@ -34,10 +32,6 @@ let handle_liveliness _ =
   print_endline "liveliness changed!"
 
 let reader () =
-  let dp = Participant.make DomainId.default in
-  let name = "KeyValue" in
-  let topic = Topic.make dp name in
-  let sub = Subscriber.make dp in
   let r = Reader.make sub topic in
   let rec loop =function
     | 0 -> ()
@@ -56,10 +50,6 @@ let reader () =
 
 
 let reader_wl () =
-  let dp = Participant.make DomainId.default in
-  let name = "KeyValue" in
-  let topic = Topic.make dp name  in
-  let sub = Subscriber.make dp  in
   let r = Reader.make sub topic  in
 
   Reader.react r (fun e -> match e with
@@ -80,7 +70,17 @@ let reader_wl () =
   in loop 100000
 
 
-let usage () = ignore( print_endline "USAGE:\n\t simple <pub | sub | sub-wl >" )
+let reader_ws () =
+  let r = Reader.make sub topic in
+  let rec loop () =
+    Reader.sread r  Duration.infinity |> List.iter (fun ((k, v), _) ->
+      let s = Bytes.to_string v in
+      Printf.printf "\tkey = %s\n\tvalue= %s\n" k s) ;
+    print_endline "looping..." ;
+    loop ()
+  in loop ()
+
+let usage () = ignore( print_endline "USAGE:\n\t simple <pub | sub | sub-wl | sub-ws>" )
 
 let _ =
   let argv = Sys.argv in
@@ -90,4 +90,5 @@ let _ =
   | "pub" -> writer ()
   | "sub" -> reader ()
   | "sub-wl" -> reader_wl ()
+  | "sub-ws" -> reader_ws ()
   | _ -> usage ()

@@ -401,6 +401,27 @@ module ListenerSet = struct
   let data_available lset callback = lset_data_available lset callback
 end
 
+let create_waitset =
+  foreign "dds_create_waitset" (Entity.t @-> returning Entity.t)
+
+let create_read_condition =
+  foreign "dds_create_readcondition" (Entity.t @-> int @-> returning Entity.t)
+
+let waitset_attach_condition_ =
+  foreign "dds_waitset_attach" (Entity.t @-> Entity.t @-> ptr void @-> returning ReturnValue.t)
+
+let waitset_attach_condition r c = waitset_attach_condition_ r c (to_voidp null)
+
+let waitset_detach_condition =
+  foreign "dds_waitset_detach" (Entity.t @-> Entity.t @-> returning ReturnValue.t)
+
+let waitset_wait_ =
+  foreign "dds_waitset_wait" (Entity.t @-> ptr (ptr void) @-> size_t @-> Duration.t @-> returning ReturnValue.t)
+
+let waitset_wait ws timeout =
+  let xs = CArray.make (ptr void) 1  in
+  waitset_wait_ ws (CArray.start xs) (Unsigned.Size_t.of_int 1) timeout
+
 (*
  * Reader/Writer Operations
  *)
@@ -448,12 +469,17 @@ let _return_loan =
 
 let return_loan e samples stored_samples = _return_loan e (to_voidp @@ CArray.start samples) stored_samples
 
+let delete_entity =
+  foreign "dds_delete" (Entity.t @-> returning ReturnValue.t)
 
 module Reader = struct
   type daf = int32
 
   type t = {
     eid: Entity.t;
+    ws : Entity.t;
+    mutable rc : Entity.t;
+    mutable selector : int;
     samples: SKeyBValue.Type.t structure ptr carray;
     info: SampleInfo.Type.t structure carray;
     max_samples: int;
@@ -473,10 +499,15 @@ module Reader = struct
   let make ?(max_samples=128) ?(policies=QosPattern.state) sub topic  =
     let qos = from_policies policies in
     let eid = create_reader sub topic qos Listener.none in
+    let p = get_participant eid in
+    let ws = create_waitset p in
+    let selector = StatusSelector.to_int StatusSelector.fresh in
+    let rc = create_read_condition eid selector in
+    let _ = waitset_attach_condition ws rc in
     let samples = SKeyBValue.make_ptr_array max_samples in
     let info = CArray.make SampleInfo.Type.t max_samples in
     let listener = ListenerSet.make () in
-    let r = { eid; samples; info; max_samples; listener; on_data_available = (fun _ _ -> ()); on_liveliness_changed = (fun _ _ _ -> ()) } in
+    let r = { eid; ws; rc; selector; samples; info; max_samples; listener; on_data_available = (fun _ _ -> ()); on_liveliness_changed = (fun _ _ _ -> ()) } in
     r
 
   let read_or_take_n dr n action selector =
@@ -514,6 +545,24 @@ module Reader = struct
         kvis
       end
 
+  let sread_or_take_n dr n action selector timeout =
+    let _ =
+      if (StatusSelector.to_int selector) = dr.selector then
+        ignore (waitset_wait dr.ws timeout)
+      else
+        begin
+          let res = waitset_detach_condition dr.ws dr.rc in
+          Printf.printf "Detached condition with : %d" (ReturnValue.to_int res) ;
+          dr.rc <- create_read_condition dr.eid (StatusSelector.to_int selector) ;
+          dr.selector <- StatusSelector.to_int selector ;
+          let _ = waitset_attach_condition dr.ws dr.rc in
+          ignore  (waitset_wait dr.ws timeout)
+        end
+    in
+    let _ = waitset_wait dr.ws timeout in
+    read_or_take_n dr n action selector
+
+
   let read_n dr n = read_or_take_n dr n read_mask_wl StatusSelector.fresh
   let take_n dr n = read_or_take_n dr n take_mask_wl StatusSelector.fresh
 
@@ -522,6 +571,15 @@ module Reader = struct
 
   let selective_read sel dr = read_or_take_n dr dr.max_samples read_mask_wl sel
   let selctive_take sel dr = read_or_take_n dr dr.max_samples take_mask_wl sel
+
+  let sread_n dr n timeout = sread_or_take_n dr n read_mask_wl StatusSelector.fresh timeout
+  let stake_n dr n timeout = sread_or_take_n dr n take_mask_wl StatusSelector.fresh timeout
+
+  let sread dr timeout = sread_n dr dr.max_samples timeout
+  let stake dr timeout= stake_n dr dr.max_samples timeout
+
+  let selective_sread sel dr timeout = sread_or_take_n dr dr.max_samples read_mask_wl sel timeout
+  let selctive_stake sel dr timeout = sread_or_take_n dr dr.max_samples take_mask_wl sel timeout
 
   let react dr callback =
     dr.on_data_available <- (fun _ _ ->  callback (DataAvailable dr)) ;
