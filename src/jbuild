@@ -5,5 +5,12 @@
  ((name            cdds)
   (public_name     cdds)
   (libraries       (ctypes ctypes.foreign))
-  (c_flags         (-L/usr/local/lib))
-  (c_library_flags (-lddsc -lddstubs))))
+  (c_flags         (:include c_flags.sexp))
+  (c_library_flags (:include c_library_flags.sexp))))
+
+
+(rule
+  ((targets (c_flags.sexp
+             c_library_flags.sexp))
+  (deps    (config/discover.exe))
+  (action  (run ${<} -ocamlc ${OCAMLC}))))

@@ -4,8 +4,12 @@
 
 if [ "$(uname)" == "Darwin" ]; then
     BIT_LIB=libddstubs.dylib
+    echo "let is_linux = false" > src/config/osconfig.ml
+    echo "let is_macos = true" >> src/config/osconfig.ml
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
     BIT_LIB=libddstubs.so
+    echo "let is_linux = true" > src/config/osconfig.ml
+    echo "let is_macos = false" >> src/config/osconfig.ml
 fi
 
 pushd &> /dev/null
