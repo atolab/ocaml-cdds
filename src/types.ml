@@ -135,24 +135,72 @@ module SKeySValue = struct
   let set_value kv v = setf kv Type.value v
 end
 
+
 module BitBytes = struct
-  type t
-  let t : t structure typ = structure "dds_bit_bytes"
-  let _maximum = field t "_maximum" uint32_t
-  let _length = field t "_length" uint32_t
-  let _buffer = field t "_buffer" (ptr uint8_t)
-  let _release = field t "_release" bool
-  let () = seal t
+  module Type = struct
+    type t
+    let t : t structure typ = structure "dds_bit_bytes"
+    let _maximum = field t "_maximum" uint32_t
+    let _length = field t "_length" uint32_t
+    let _buffer = field t "_buffer"  (ptr uint8_t)
+    let _release = field t "_release" bool
+    let () = seal t
+  end
+
+  let length b = getf b Type._length
+
+  let to_ptr b = getf b Type._buffer
+
+  let of_array xs  =
+    let s = make Type.t in
+    let ulen = Unsigned.UInt32.of_int @@ CArray.length xs in
+    let ptr = CArray.start xs in
+    setf s Type._maximum ulen ;
+    setf s Type._length ulen ;
+    setf s Type._buffer ptr ;
+    setf s Type._release false ;
+    s
+
+  let make len ptr =
+    let s = make Type.t in
+    let ulen = Unsigned.UInt32.of_int len in
+    setf s Type._maximum ulen ;
+    setf s Type._length ulen ;
+    setf s Type._buffer ptr ;
+    setf s Type._release false ;
+    s
 
 end
 
 module SKeyBValue = struct
-  type t
-  let t : t structure typ = structure "dds_bit_SKeyBValue"
-  let key  = field t "key" string
-  let value = field t "value" BitBytes.t
-  let () = seal t
+
+  module Type = struct
+    type t
+    let t : t structure typ = structure "dds_bit_SKeyBValue"
+    let key  = field t "key" string
+    let value = field t "value" BitBytes.Type.t
+    let () = seal t
+
+    let desc = foreign_value "dds_bit_SKeyBValue_desc" TopicDescriptor.t
+  end
+
+  let make k v =
+    let e = make Type.t in
+    setf e Type.key k ;
+    setf e Type.value v;
+    e
+
+  let make_array n = CArray.make Type.t n
+
+  let make_ptr_array n = CArray.make (ptr Type.t) n
+
+  let key v = getf v Type.key
+  let value v = getf v Type.value
+
+  let set_key kv k = setf kv Type.key k
+  let set_value kv v = setf kv Type.value v
 end
+
 
 module SampleInfo = struct
   module Type = struct

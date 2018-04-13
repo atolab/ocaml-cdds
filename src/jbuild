@@ -6,4 +6,4 @@
   (public_name     cdds)
   (libraries       (ctypes ctypes.foreign))
   (c_flags         (-L/usr/local/lib))
-  (c_library_flags (-Wl,-no-as-needed -lddsc -lddstubs))))
+  (c_library_flags (-lddsc -lddstubs))))

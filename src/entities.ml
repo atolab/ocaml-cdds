@@ -54,7 +54,7 @@ end = struct
 
   let make ?(policies=[]) dp name  =
     let qos = from_policies policies in
-    create_topic dp SKeySValue.Type.desc name qos Listener.none
+    create_topic dp SKeyBValue.Type.desc name qos Listener.none
 
   let find dp name =
     match find_topic dp name with
@@ -124,8 +124,16 @@ module Writer = struct
     create_writer pub topic qos Listener.none
 
 
+  let write_string dw key value =
+    let xs = CArray.make uint8_t (String.length value) in
+    String.iteri (fun i c -> CArray.set xs i (Unsigned.UInt8.of_int (Char.code c)) ) value ;
+    let v = BitBytes.of_array xs in
+    let s = SKeyBValue.make key v in
+    write dw s
+
   let write dw key value =
-    let s = SKeySValue.make key value in
+    let v = BitBytes.of_array value in
+    let s = SKeyBValue.make key v in
     write dw s
 
   let write_list dw ksvs =
@@ -443,7 +451,7 @@ module Reader = struct
 
   type t = {
     eid: Entity.t;
-    samples: SKeySValue.Type.t structure ptr carray;
+    samples: SKeyBValue.Type.t structure ptr carray;
     info: SampleInfo.Type.t structure carray;
     max_samples: int;
     listener: Listener.t structure ptr;
@@ -462,7 +470,7 @@ module Reader = struct
   let make ?(max_samples=128) ?(policies=QosPattern.state) sub topic  =
     let qos = from_policies policies in
     let eid = create_reader sub topic qos Listener.none in
-    let samples = SKeySValue.make_ptr_array max_samples in
+    let samples = SKeyBValue.make_ptr_array max_samples in
     let info = CArray.make SampleInfo.Type.t max_samples in
     let listener = ListenerSet.make () in
     let r = { eid; samples; info; max_samples; listener; on_data_available = (fun _ _ -> ()); on_liveliness_changed = (fun _ _ _ -> ()) } in
@@ -475,9 +483,15 @@ module Reader = struct
         let idx = n - 1 in
         let s = !@(CArray.get samples idx) in
         let i = CArray.get info idx in
-        let k = (SKeySValue.key s) in
-        let v = (SKeySValue.value s) in
-        collect_samples (((k, v), i)::kvi) (n-1) samples info
+        let k = (SKeyBValue.key s) in
+        let v = (SKeyBValue.value s) in
+        let len = Unsigned.UInt32.to_int @@ BitBytes.length v in
+        let xs = CArray.make uint8_t len in
+        let ptr = BitBytes.to_ptr v in
+        for i = 0 to (len-1) do
+          CArray.set xs i !@( ptr +@ i )
+        done ;
+        collect_samples (((k, xs), i)::kvi) (n-1) samples info
     in
     if n <= dr.max_samples then
       begin
@@ -489,7 +503,7 @@ module Reader = struct
     else
       begin
         let info = SampleInfo.make_array n in
-        let samples = SKeySValue.make_ptr_array n in
+        let samples = SKeyBValue.make_ptr_array n in
         let read_samples = action dr.eid samples info n (StatusSelector.to_int selector) in
         let kvis = collect_samples [] (Int32.to_int read_samples) samples info in
         ignore (return_loan dr.eid samples read_samples) ;

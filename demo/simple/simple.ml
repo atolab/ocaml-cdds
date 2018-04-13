@@ -16,7 +16,7 @@ let writer () =
     | n ->
       let k = "ocaml" ^ (string_of_int (n mod 10)) in
       let v = "rulez-" ^ (string_of_int n) in
-    let r = Writer.write w k v in
+    let r = Writer.write_string w k v in
     Printf.printf "Write %d returned  %d"  n @@ Int32.to_int r ;
     print_endline "" ;
     Unix.sleepf 0.01 ;
@@ -27,7 +27,10 @@ let writer () =
   print_endline "Released QoS!"
 
 let handle_data dr  =
-  Reader.read dr  |> List.iter (fun ((k, v), _) ->  Printf.printf "\tkey = %s\n\tvalue= %s\n" k v)
+  Reader.read dr  |> List.iter (fun ((k, v), _) ->
+      let vs = Ctypes.CArray.to_list v in
+      let s = List.fold_left (fun a b -> a ^ ", " ^ (Char.escaped (Char.chr @@ Unsigned.UInt8.to_int b) )) "" vs  in
+      Printf.printf "\tkey = %s\n\tvalue= %s\n" k s)
 
 let handle_liveliness _ =
   print_endline "liveliness changed!"
@@ -63,7 +66,10 @@ let reader_wl () =
 
   Reader.react r (fun e -> match e with
       | Reader.DataAvailable dr ->
-        Reader.read dr  |> List.iter (fun ((k, v), _) ->  Printf.printf "\tkey = %s\n\tvalue= %s\n" k v ; print_endline "<->")
+        Reader.read dr  |> List.iter (fun ((k, v), _) ->
+            let vs = Ctypes.CArray.to_list v in
+            let s = List.fold_left (fun a b -> a ^ "" ^ (Char.escaped (Char.chr @@ Unsigned.UInt8.to_int b) )) "" vs  in
+            Printf.printf "\tkey = %s\n\tvalue= %s\n" k s ; print_endline "<->")
       | Reader.LivelinessChanged (_, _) -> print_endline "Liveliness Changed!" ;
       | _ -> ()
     ) ;

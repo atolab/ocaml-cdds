@@ -6,8 +6,7 @@ BUILD=jbuilder build --dev ${TARGET}
 CLEAN= jbuilder clean
 
 all:
-		${BUILD}
-		cp ${BUILD_DIR}/${TARGET} .
+		${BUILD}		
 clean:
 	${CLEAN}
 	$(RM) -f ${TARGET}
