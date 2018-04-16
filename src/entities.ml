@@ -570,7 +570,7 @@ module Reader = struct
   let take dr = take_n dr dr.max_samples
 
   let selective_read sel dr = read_or_take_n dr dr.max_samples read_mask_wl sel
-  let selctive_take sel dr = read_or_take_n dr dr.max_samples take_mask_wl sel
+  let selective_take sel dr = read_or_take_n dr dr.max_samples take_mask_wl sel
 
   let sread_n dr n timeout = sread_or_take_n dr n read_mask_wl StatusSelector.fresh timeout
   let stake_n dr n timeout = sread_or_take_n dr n take_mask_wl StatusSelector.fresh timeout
@@ -579,7 +579,7 @@ module Reader = struct
   let stake dr timeout= stake_n dr dr.max_samples timeout
 
   let selective_sread sel dr timeout = sread_or_take_n dr dr.max_samples read_mask_wl sel timeout
-  let selctive_stake sel dr timeout = sread_or_take_n dr dr.max_samples take_mask_wl sel timeout
+  let selective_stake sel dr timeout = sread_or_take_n dr dr.max_samples take_mask_wl sel timeout
 
   let react dr callback =
     dr.on_data_available <- (fun _ _ ->  callback (DataAvailable dr)) ;
