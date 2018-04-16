@@ -412,7 +412,7 @@ let waitset_attach_condition_ =
 
 let waitset_attach_condition r c = waitset_attach_condition_ r c (to_voidp null)
 
-let waitset_detach_condition =
+let waitset_detach =
   foreign "dds_waitset_detach" (Entity.t @-> Entity.t @-> returning ReturnValue.t)
 
 let waitset_wait_ =
@@ -507,8 +507,16 @@ module Reader = struct
     let samples = SKeyBValue.make_ptr_array max_samples in
     let info = CArray.make SampleInfo.Type.t max_samples in
     let listener = ListenerSet.make () in
-    let r = { eid; ws; rc; selector; samples; info; max_samples; listener; on_data_available = (fun _ _ -> ()); on_liveliness_changed = (fun _ _ _ -> ()) } in
-    r
+    { eid;
+      ws;
+      rc;
+      selector;
+      samples;
+      info;
+      max_samples;
+      listener;
+      on_data_available = (fun _ _ -> ());
+      on_liveliness_changed = (fun _ _ _ -> ()) }
 
   let read_or_take_n dr n action selector =
     let rec collect_samples kvi n samples info  = match n with
@@ -551,8 +559,10 @@ module Reader = struct
         ignore (waitset_wait dr.ws timeout)
       else
         begin
-          let res = waitset_detach_condition dr.ws dr.rc in
-          Printf.printf "Detached condition with : %d" (ReturnValue.to_int res) ;
+          ignore (waitset_detach dr.ws dr.rc) ;
+          ignore (waitset_detach dr.ws dr.ws) ;
+          ignore (delete_entity dr.rc) ;
+          ignore (delete_entity dr.ws) ;
           dr.rc <- create_read_condition dr.eid (StatusSelector.to_int selector) ;
           dr.selector <- StatusSelector.to_int selector ;
           let _ = waitset_attach_condition dr.ws dr.rc in
@@ -570,7 +580,7 @@ module Reader = struct
   let take dr = take_n dr dr.max_samples
 
   let selective_read sel dr = read_or_take_n dr dr.max_samples read_mask_wl sel
-  let selctive_take sel dr = read_or_take_n dr dr.max_samples take_mask_wl sel
+  let selective_take sel dr = read_or_take_n dr dr.max_samples take_mask_wl sel
 
   let sread_n dr n timeout = sread_or_take_n dr n read_mask_wl StatusSelector.fresh timeout
   let stake_n dr n timeout = sread_or_take_n dr n take_mask_wl StatusSelector.fresh timeout
@@ -579,7 +589,7 @@ module Reader = struct
   let stake dr timeout= stake_n dr dr.max_samples timeout
 
   let selective_sread sel dr timeout = sread_or_take_n dr dr.max_samples read_mask_wl sel timeout
-  let selctive_stake sel dr timeout = sread_or_take_n dr dr.max_samples take_mask_wl sel timeout
+  let selective_stake sel dr timeout = sread_or_take_n dr dr.max_samples take_mask_wl sel timeout
 
   let react dr callback =
     dr.on_data_available <- (fun _ _ ->  callback (DataAvailable dr)) ;

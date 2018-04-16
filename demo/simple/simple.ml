@@ -16,7 +16,8 @@ let writer () =
     let r = Writer.write_string w k v in
     Printf.printf "Write %d returned  %d"  n @@ Int32.to_int r ;
     print_endline "" ;
-    Unix.sleepf 0.1 ;
+    Unix.sleepf 0.01 
+    ;
     loop @@ n - 1
   in loop 100000 ;
 

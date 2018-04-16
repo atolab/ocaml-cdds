@@ -6,7 +6,8 @@ BUILD=jbuilder build --dev ${TARGET}
 CLEAN= jbuilder clean
 
 all:
-		${BUILD}		
+		${BUILD}
+
 clean:
 	${CLEAN}
-	$(RM) -f ${TARGET}
+	$(RM) ${TARGET}

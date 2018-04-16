@@ -2,4 +2,5 @@
 
 (executables
  ((names (simple))
-  (libraries (cdds))))
+  (flags         (-thread))
+  (libraries (cdds lwt lwt.unix lwt.preemptive))))
