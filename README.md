@@ -24,15 +24,14 @@ That's it.
 To build  the example shipped with ocaml-cdds do the following:
 
     $ make demo
-    $ jbuilder build simple.exe
     
 Then to run the example, on one terminal do:
 
-    $ ./demo/simple/simple.exe sub-wl
+    $ ./demo/simple/_build/default/simple.exe sub-wl
     
 Then to run the example, on another terminal do:
 
-    $ ./demo/simple/simple.exe pub
+    $ ./demo/simple/_build/default/simple.exe pub
     
     
 You should see data being printed on the console showing what the subscrier is receiving.
