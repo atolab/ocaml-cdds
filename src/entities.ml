@@ -124,17 +124,18 @@ module Writer = struct
 
   let write_string dw key value =
     let xs = CArray.make char (String.length value) in
-    (* String.iteri (fun i c -> CArray.set xs i (Unsigned.UInt8.of_int (Char.code c)) ) value ; *)
     String.iteri (fun i c -> CArray.set xs i c) value ;
     let v = BitBytes.of_array xs in
-    let s = SKeyBValue.make key v in
+    let k = SKeyBValue.make_char_array key in
+    let s = SKeyBValue.make (CArray.start k) v in
     write dw s
 
   let write dw key bs =
     let xs = CArray.make char (Bytes.length bs) in
     Bytes.iteri (fun i c -> CArray.set xs i c) bs ;
     let v = BitBytes.of_array xs in
-    let s = SKeyBValue.make key v in
+    let k = SKeyBValue.make_char_array key in
+    let s = SKeyBValue.make (CArray.start k) v in
     write dw s
 
   let write_list dw ksvs =
@@ -523,8 +524,13 @@ module Reader = struct
         let idx = n - 1 in
         let s = !@(CArray.get samples idx) in
         let i = CArray.get info idx in
-        let k = (SKeyBValue.key s) in
         let v = (SKeyBValue.value s) in
+        let rec compute_len cp n =
+          if Char.code !@cp = 0 then n
+          else compute_len (cp +@ 1) (n+1)
+        in
+        let kp = SKeyBValue.key s in
+        let k = string_from_ptr kp  (compute_len kp 0) in
         let len = Unsigned.UInt32.to_int @@ BitBytes.length v in
         (* let xs = CArray.make uint8_t len in *)
         let bs = Bytes.make len (Char.chr 0) in
@@ -580,7 +586,7 @@ module Reader = struct
   let stake_n ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr n = sread_or_take_n dr n take_mask_wl selector timeout
 
   let sread ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr  = sread_n ~selector:selector ~timeout:timeout dr dr.max_samples
-  let stake ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr = stake_n ~selector:selector ~timeout:timeout dr dr.max_samples 
+  let stake ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr = stake_n ~selector:selector ~timeout:timeout dr dr.max_samples
 
   let react dr callback =
     dr.on_data_available <- (fun _ _ ->  callback (DataAvailable dr)) ;

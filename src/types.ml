@@ -177,7 +177,7 @@ module SKeyBValue = struct
   module Type = struct
     type t
     let t : t structure typ = structure "dds_bit_SKeyBValue"
-    let key  = field t "key" string
+    let key  = field t "key" (ptr char)
     let value = field t "value" BitBytes.Type.t
     let () = seal t
 
@@ -193,6 +193,11 @@ module SKeyBValue = struct
   let make_array n = CArray.make Type.t n
 
   let make_ptr_array n = CArray.make (ptr Type.t) n
+
+  let make_char_array s =
+    let cs = CArray.make char (String.length s) in
+    String.iteri (fun i c -> CArray.set cs i c) s ;
+    cs
 
   let key v = getf v Type.key
   let value v = getf v Type.value
