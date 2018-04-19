@@ -576,11 +576,11 @@ module Reader = struct
   let read ?(selector=StatusSelector.fresh) dr = read_n ~selector:selector dr dr.max_samples
   let take ?(selector=StatusSelector.fresh) dr = take_n ~selector:selector dr dr.max_samples
 
-  let sread_n ?(selector=StatusSelector.fresh) dr n timeout = sread_or_take_n dr n read_mask_wl selector timeout
-  let stake_n ?(selector=StatusSelector.fresh) dr n timeout = sread_or_take_n dr n take_mask_wl selector timeout
+  let sread_n ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr n = sread_or_take_n dr n read_mask_wl selector timeout
+  let stake_n ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr n = sread_or_take_n dr n take_mask_wl selector timeout
 
-  let sread ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr  = sread_n ~selector:selector dr dr.max_samples timeout
-  let stake ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr = stake_n ~selector:selector dr dr.max_samples timeout
+  let sread ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr  = sread_n ~selector:selector ~timeout:timeout dr dr.max_samples
+  let stake ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr = stake_n ~selector:selector ~timeout:timeout dr dr.max_samples 
 
   let react dr callback =
     dr.on_data_available <- (fun _ _ ->  callback (DataAvailable dr)) ;

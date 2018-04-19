@@ -15,6 +15,7 @@ module SKeySValue = Types.SKeySValue
 module SKeyBValue = Types.SKeyBValue
 module BitBytes = Types.BitBytes
 module SampleInfo = Types.SampleInfo
+module StatusSelector = Types.StatusSelector
 
 module Qos = Policies.Qos
 module PolicyId = Policies.PolicyId
