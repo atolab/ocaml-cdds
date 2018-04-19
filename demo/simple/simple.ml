@@ -30,7 +30,7 @@ let handle_liveliness _ =
 let sreader () =
   let r = Reader.make sub topic in
   let rec loop () =
-    Reader.sread r  Duration.infinity |> List.iter (fun ((k, v), _) ->
+    Reader.sread r  |> List.iter (fun ((k, v), _) ->
         let s = Bytes.to_string v in
         Printf.printf "\tkey = %s\n\tvalue= %s\n" k s) ;
     print_endline "looping..." ;
@@ -67,5 +67,5 @@ let _ =
   match Array.get argv 1 with
   | "pub" -> writer ()
   | "sub" -> sreader ()
-  | "sub-wl" -> lreader ()  
+  | "sub-wl" -> lreader ()
   | _ -> usage ()

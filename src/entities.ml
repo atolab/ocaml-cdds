@@ -570,24 +570,17 @@ module Reader = struct
     let _ = waitset_wait dr.ws timeout in
     read_or_take_n dr n action selector
 
+  let read_n ?(selector=StatusSelector.fresh) dr n = read_or_take_n dr n read_mask_wl selector
+  let take_n ?(selector=StatusSelector.fresh) dr n = read_or_take_n dr n take_mask_wl selector
 
-  let read_n dr n = read_or_take_n dr n read_mask_wl StatusSelector.fresh
-  let take_n dr n = read_or_take_n dr n take_mask_wl StatusSelector.fresh
+  let read ?(selector=StatusSelector.fresh) dr = read_n ~selector:selector dr dr.max_samples
+  let take ?(selector=StatusSelector.fresh) dr = take_n ~selector:selector dr dr.max_samples
 
-  let read dr = read_n dr dr.max_samples
-  let take dr = take_n dr dr.max_samples
+  let sread_n ?(selector=StatusSelector.fresh) dr n timeout = sread_or_take_n dr n read_mask_wl selector timeout
+  let stake_n ?(selector=StatusSelector.fresh) dr n timeout = sread_or_take_n dr n take_mask_wl selector timeout
 
-  let selective_read sel dr = read_or_take_n dr dr.max_samples read_mask_wl sel
-  let selective_take sel dr = read_or_take_n dr dr.max_samples take_mask_wl sel
-
-  let sread_n dr n timeout = sread_or_take_n dr n read_mask_wl StatusSelector.fresh timeout
-  let stake_n dr n timeout = sread_or_take_n dr n take_mask_wl StatusSelector.fresh timeout
-
-  let sread dr timeout = sread_n dr dr.max_samples timeout
-  let stake dr timeout= stake_n dr dr.max_samples timeout
-
-  let selective_sread sel dr timeout = sread_or_take_n dr dr.max_samples read_mask_wl sel timeout
-  let selective_stake sel dr timeout = sread_or_take_n dr dr.max_samples take_mask_wl sel timeout
+  let sread ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr  = sread_n ~selector:selector dr dr.max_samples timeout
+  let stake ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr = stake_n ~selector:selector dr dr.max_samples timeout
 
   let react dr callback =
     dr.on_data_available <- (fun _ _ ->  callback (DataAvailable dr)) ;
