@@ -8,24 +8,24 @@ open Policies
  * Memory Management
  *)
 let alloc =
-  foreign "dds_alloc" (uint32_t @-> returning @@ ptr void)
+  foreign ~release_runtime_lock:true "dds_alloc" (uint32_t @-> returning @@ ptr void)
 
 
 let free_sample =
-  foreign "dds_sample_free" (ptr void @-> ptr TopicDescriptor.t @-> FreeOption.t @-> returning void )
+  foreign ~release_runtime_lock:true "dds_sample_free" (ptr void @-> ptr TopicDescriptor.t @-> FreeOption.t @-> returning void )
 
 
 (*
  * Participant Operations
  *)
 let create_participant =
-  foreign "dds_create_participant" ( DomainId.t @-> ptr Qos.t @-> ptr Listener.t @-> returning Entity.t)
+  foreign ~release_runtime_lock:true "dds_create_participant" ( DomainId.t @-> ptr Qos.t @-> ptr Listener.t @-> returning Entity.t)
 
 let get_parent =
-  foreign "dds_get_parent" (Entity.t @-> returning Entity.t)
+  foreign ~release_runtime_lock:true "dds_get_parent" (Entity.t @-> returning Entity.t)
 
 let get_participant =
-  foreign "dds_get_participant" (Entity.t @-> returning Entity.t)
+  foreign ~release_runtime_lock:true "dds_get_participant" (Entity.t @-> returning Entity.t)
 
 
 module Participant = struct
@@ -66,16 +66,16 @@ end
  * Publisher/Subscriber Operations
  *)
 let create_publisher =
-  foreign "dds_create_publisher" (Entity.t @-> ptr Qos.t @-> ptr Listener.t @-> returning Entity.t)
+  foreign ~release_runtime_lock:true "dds_create_publisher" (Entity.t @-> ptr Qos.t @-> ptr Listener.t @-> returning Entity.t)
 
 let get_publisher =
-  foreign "dds_get_publisher" (Entity.t @-> returning Entity.t)
+  foreign ~release_runtime_lock:true "dds_get_publisher" (Entity.t @-> returning Entity.t)
 
 let create_subscriber =
-  foreign "dds_create_subscriber" (Entity.t @-> ptr Qos.t @-> ptr Listener.t @-> returning Entity.t)
+  foreign ~release_runtime_lock:true "dds_create_subscriber" (Entity.t @-> ptr Qos.t @-> ptr Listener.t @-> returning Entity.t)
 
 let get_subscriber =
-  foreign "dds_get_subscriber" (Entity.t @-> returning Entity.t)
+  foreign ~release_runtime_lock:true "dds_get_subscriber" (Entity.t @-> returning Entity.t)
 
 
 module Publisher = struct
@@ -103,13 +103,11 @@ module Subscriber = struct
   let get eid = get_subscriber eid
 end
 
-
-
 let create_writer =
-  foreign "dds_create_writer" (Entity.t @-> Entity.t @-> ptr Qos.t @-> ptr Listener.t @-> returning Entity.t)
+  foreign  ~release_runtime_lock:true "dds_create_writer" (Entity.t @-> Entity.t @-> ptr Qos.t @-> ptr Listener.t @-> returning Entity.t)
 
 let _write =
-  foreign "dds_write" (Entity.t @-> ptr void @-> returning ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_write" (Entity.t @-> ptr void @-> returning ReturnValue.t)
 
 let write w s = _write w  @@ to_voidp @@ addr s
 
@@ -336,19 +334,19 @@ let data_on_readers_callback_t = (Entity.t @-> ptr void @-> returning void)
 let data_available_callback_t = (Entity.t @-> ptr void @-> returning void)
 
 let set_listener =
-  foreign "dds_set_listener" (Entity.t @-> ptr Listener.t @-> returning ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_set_listener" (Entity.t @-> ptr Listener.t @-> returning ReturnValue.t)
 
 let create_listener_w_attch =
-  foreign "dds_listener_create" (ptr void @-> returning @@ ptr Listener.t)
+  foreign ~release_runtime_lock:true "dds_listener_create" (ptr void @-> returning @@ ptr Listener.t)
 
 let create_listener () = create_listener_w_attch @@ to_voidp null
 
 
 let delete_listener =
-  foreign "dds_listener_delete" (ptr Listener.t @-> returning void)
+  foreign ~release_runtime_lock:true "dds_listener_delete" (ptr Listener.t @-> returning void)
 
 let reset_listener =
-  foreign "dds_listener_reset" (ptr Listener.t @-> returning void)
+  foreign ~release_runtime_lock:true "dds_listener_reset" (ptr Listener.t @-> returning void)
 
 let lset_liveliness_lost =
   foreign "dds_lset_liveliness_lost" (ptr Listener.t @-> funptr  ~thread_registration:true ~runtime_lock:true LivelinessLost.callback @-> returning void)
@@ -402,21 +400,21 @@ module ListenerSet = struct
 end
 
 let create_waitset =
-  foreign "dds_create_waitset" (Entity.t @-> returning Entity.t)
+  foreign ~release_runtime_lock:true "dds_create_waitset" (Entity.t @-> returning Entity.t)
 
 let create_read_condition =
-  foreign "dds_create_readcondition" (Entity.t @-> int @-> returning Entity.t)
+  foreign ~release_runtime_lock:true "dds_create_readcondition" (Entity.t @-> int @-> returning Entity.t)
 
 let waitset_attach_condition_ =
-  foreign "dds_waitset_attach" (Entity.t @-> Entity.t @-> ptr void @-> returning ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_waitset_attach" (Entity.t @-> Entity.t @-> ptr void @-> returning ReturnValue.t)
 
 let waitset_attach_condition r c = waitset_attach_condition_ r c (to_voidp null)
 
 let waitset_detach =
-  foreign "dds_waitset_detach" (Entity.t @-> Entity.t @-> returning ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_waitset_detach" (Entity.t @-> Entity.t @-> returning ReturnValue.t)
 
 let waitset_wait_ =
-  foreign "dds_waitset_wait" (Entity.t @-> ptr (ptr void) @-> size_t @-> Duration.t @-> returning ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_waitset_wait" (Entity.t @-> ptr (ptr void) @-> size_t @-> Duration.t @-> returning ReturnValue.t)
 
 let waitset_wait ws timeout =
   let xs = CArray.make (ptr void) 1  in
@@ -426,51 +424,51 @@ let waitset_wait ws timeout =
  * Reader/Writer Operations
  *)
 let create_reader =
-  foreign "dds_create_reader" (Entity.t @-> Entity.t @-> ptr Qos.t @-> ptr Listener.t @-> returning Entity.t)
+  foreign ~release_runtime_lock:true "dds_create_reader" (Entity.t @-> Entity.t @-> ptr Qos.t @-> ptr Listener.t @-> returning Entity.t)
 
 let reader_wait_for_historical_data =
-  foreign "dds_reader_wait_for_historical_data" (Entity.t @-> Duration.t @-> returning ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_reader_wait_for_historical_data" (Entity.t @-> Duration.t @-> returning ReturnValue.t)
 
 let wait_for_acks =
-  foreign "dds_wait_for_acks" (Entity.t @-> Duration.t @-> returning ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_wait_for_acks" (Entity.t @-> Duration.t @-> returning ReturnValue.t)
 
 let _read =
-  foreign "dds_read" (Entity.t @-> ptr void @-> ptr SampleInfo.Type.t @-> int @-> int @-> returning  ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_read" (Entity.t @-> ptr void @-> ptr SampleInfo.Type.t @-> int @-> int @-> returning  ReturnValue.t)
 
 let read e samples info buf_len max_samples  = _read e (to_voidp @@ CArray.start samples)  (CArray.start info) buf_len max_samples
 
 let _read_wl =
-  foreign "dds_read_wl" (Entity.t @-> ptr void @-> ptr SampleInfo.Type.t @-> int @-> returning  ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_read_wl" (Entity.t @-> ptr void @-> ptr SampleInfo.Type.t @-> int @-> returning  ReturnValue.t)
 
 let read_wl e samples info max_samples = _read_wl e (to_voidp @@ CArray.start samples)  (CArray.start info) max_samples
 
 let _read_mask_wl =
-  foreign "dds_read_mask_wl" (Entity.t @-> ptr void @-> ptr SampleInfo.Type.t @-> int @-> int @-> returning  ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_read_mask_wl" (Entity.t @-> ptr void @-> ptr SampleInfo.Type.t @-> int @-> int @-> returning  ReturnValue.t)
 
 let read_mask_wl e samples info max_samples mask = _read_mask_wl e (to_voidp @@ CArray.start samples)  (CArray.start info) max_samples mask
 
 let _take =
-  foreign "dds_take" (Entity.t @-> ptr void @-> ptr SampleInfo.Type.t @-> int @-> int @-> returning  ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_take" (Entity.t @-> ptr void @-> ptr SampleInfo.Type.t @-> int @-> int @-> returning  ReturnValue.t)
 
 let take e samples info buf_len max_samples  = _take e (to_voidp @@ CArray.start samples)  (CArray.start info) buf_len max_samples
 
 let _take_wl =
-  foreign "dds_take_wl" (Entity.t @-> ptr void @-> ptr SampleInfo.Type.t @-> int @-> returning  ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_take_wl" (Entity.t @-> ptr void @-> ptr SampleInfo.Type.t @-> int @-> returning  ReturnValue.t)
 
 let take_wl e samples info max_samples = _take_wl e (to_voidp @@ CArray.start samples)  (CArray.start info) max_samples
 
 let _take_mask_wl =
-  foreign "dds_read_mask_wl" (Entity.t @-> ptr void @-> ptr SampleInfo.Type.t @-> int @-> int @-> returning  ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_read_mask_wl" (Entity.t @-> ptr void @-> ptr SampleInfo.Type.t @-> int @-> int @-> returning  ReturnValue.t)
 
 let take_mask_wl e samples info max_samples mask = _take_mask_wl e (to_voidp @@ CArray.start samples)  (CArray.start info) max_samples mask
 
 let _return_loan =
-  foreign "dds_return_loan" (Entity.t @-> ptr void @-> int32_t @-> returning ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_return_loan" (Entity.t @-> ptr void @-> int32_t @-> returning ReturnValue.t)
 
 let return_loan e samples stored_samples = _return_loan e (to_voidp @@ CArray.start samples) stored_samples
 
 let delete_entity =
-  foreign "dds_delete" (Entity.t @-> returning ReturnValue.t)
+  foreign ~release_runtime_lock:true "dds_delete" (Entity.t @-> returning ReturnValue.t)
 
 module Reader = struct
   type daf = int32

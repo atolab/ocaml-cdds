@@ -16,7 +16,7 @@ let writer () =
     let r = Writer.write_string w k v in
     Printf.printf "Write %d returned  %d"  n @@ Int32.to_int r ;
     print_endline "" ;
-    Unix.sleepf 0.01 
+    Unix.sleepf 0.01
     ;
     loop @@ n - 1
   in loop 100000 ;
@@ -24,33 +24,21 @@ let writer () =
   print_endline "Works!" ;
   print_endline "Released QoS!"
 
-let handle_data dr  =
-  Reader.read dr  |> List.iter (fun ((k, v), _) ->
-      let s = Bytes.to_string v in
-      Printf.printf "\tkey = %s\n\tvalue= %s\n" k s)
-
 let handle_liveliness _ =
   print_endline "liveliness changed!"
 
-let reader () =
+let sreader () =
   let r = Reader.make sub topic in
-  let rec loop =function
-    | 0 -> ()
-    | n ->
-      handle_data r ;
-      print_endline "-" ;
-      Unix.sleepf 0.1;
-      if n mod 100 = 0 then
-        begin
-          Gc.print_stat stdout ;
-          Gc.compact () ;
-          Gc.print_stat stdout ;
-        end ;
-      loop @@ n - 1
-  in loop 100000
+  let rec loop () =
+    Reader.sread r  Duration.infinity |> List.iter (fun ((k, v), _) ->
+        let s = Bytes.to_string v in
+        Printf.printf "\tkey = %s\n\tvalue= %s\n" k s) ;
+    print_endline "looping..." ;
+    loop ()
+  in loop ()
 
 
-let reader_wl () =
+let lreader () =
   let r = Reader.make sub topic  in
 
   Reader.react r (fun e -> match e with
@@ -70,17 +58,6 @@ let reader_wl () =
       loop @@ n - 1
   in loop 100000
 
-
-let reader_ws () =
-  let r = Reader.make sub topic in
-  let rec loop () =
-    Reader.sread r  Duration.infinity |> List.iter (fun ((k, v), _) ->
-      let s = Bytes.to_string v in
-      Printf.printf "\tkey = %s\n\tvalue= %s\n" k s) ;
-    print_endline "looping..." ;
-    loop ()
-  in loop ()
-
 let usage () = ignore( print_endline "USAGE:\n\t simple <pub | sub | sub-wl | sub-ws>" )
 
 let _ =
@@ -89,7 +66,6 @@ let _ =
   else
   match Array.get argv 1 with
   | "pub" -> writer ()
-  | "sub" -> reader ()
-  | "sub-wl" -> reader_wl ()
-  | "sub-ws" -> reader_ws ()
+  | "sub" -> sreader ()
+  | "sub-wl" -> lreader ()  
   | _ -> usage ()
