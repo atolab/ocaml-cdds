@@ -170,6 +170,11 @@ module BitBytes = struct
     setf s Type._release false ;
     s
 
+  let set_maximun bb ulen = setf bb Type._maximum ulen
+  let set_length bb ulen = setf bb Type._length ulen
+  let set_release bb rel = setf bb Type._release rel
+  let set_buffer bb buf = setf bb Type._buffer buf
+
 end
 
 module SKeyBValue = struct

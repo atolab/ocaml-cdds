@@ -24,6 +24,27 @@ let writer () =
   print_endline "Works!" ;
   print_endline "Released QoS!"
 
+
+
+
+  let writer_alloc () =
+    let w = Writer.make dp topic in
+    let rec loop =function
+      | 0 -> ()
+      | n ->
+        let k = "ocaml" ^ (string_of_int (n mod 10)) in
+        let v = "rulez-" ^ (string_of_int n) in
+        let r = Writer.write_alloc w k (Bytes.of_string v) in
+      Printf.printf "Write %d returned  %d"  n @@ Int32.to_int r ;
+      print_endline "" ;
+      Unix.sleepf 0.01
+      ;
+      loop @@ n - 1
+    in loop 100000 ;
+
+    print_endline "Works!" ;
+    print_endline "Released QoS!"
+
 let handle_liveliness _ =
   print_endline "liveliness changed!"
 
@@ -58,7 +79,7 @@ let lreader () =
       loop @@ n - 1
   in loop 100000
 
-let usage () = ignore( print_endline "USAGE:\n\t simple <pub | sub | sub-wl | sub-ws>" )
+let usage () = ignore( print_endline "USAGE:\n\t simple <pub | pub-alloc | sub | sub-wl | sub-ws>" )
 
 let _ =
   let argv = Sys.argv in
@@ -68,4 +89,5 @@ let _ =
   | "pub" -> writer ()
   | "sub" -> sreader ()
   | "sub-wl" -> lreader ()
+  | "pub-alloc" -> writer_alloc ()
   | _ -> usage ()
