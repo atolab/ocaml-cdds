@@ -139,32 +139,33 @@ module Writer = struct
     foreign ~release_runtime_lock:true "free" (ptr void @-> returning void )
 
   let write_alloc dw key value =
-  let c_data = malloc (Unsigned.UInt32.of_int (Ctypes.sizeof SKeyBValue.Type.t)) in
-  let o_data = Ctypes.coerce (ptr void) (ptr SKeyBValue.Type.t) c_data in
+    let c_data = malloc (Unsigned.UInt32.of_int (Ctypes.sizeof SKeyBValue.Type.t)) in
+    let o_data = Ctypes.coerce (ptr void) (ptr SKeyBValue.Type.t) c_data in
 
-  let c_key = malloc (Unsigned.UInt32.of_int ((String.length key)*(Ctypes.sizeof (char)))) in
-  let o_key =  Ctypes.coerce (ptr void) (ptr char) c_key in
-  let o_key_array =  Ctypes.CArray.from_ptr  o_key (String.length key) in
-  String.iteri (fun i c -> Ctypes.CArray.set o_key_array i c) key;
+    let c_key = malloc (Unsigned.UInt32.of_int ((String.length key)*(Ctypes.sizeof (char)))) in
+    let o_key =  Ctypes.coerce (ptr void) (ptr char) c_key in
+    let o_key_array =  Ctypes.CArray.from_ptr  o_key (String.length key) in
+    String.iteri (fun i c -> Ctypes.CArray.set o_key_array i c) key;
 
-  let c_value = malloc @@ (Unsigned.UInt32.of_int (Ctypes.sizeof BitBytes.Type.t)) in
-  let ulen = Bytes.length value in
-  let o_value =  Ctypes.coerce (ptr void) (ptr BitBytes.Type.t) c_value in
-  let c_buffer = malloc @@ (Unsigned.UInt32.of_int (ulen*(Ctypes.sizeof char ))) in
-  let o_buffer = Ctypes.coerce (ptr void) (ptr char) c_buffer in
-  let o_buffer_array =  Ctypes.CArray.from_ptr o_buffer ulen in
-  Bytes.iteri (fun i c -> Ctypes.CArray.set o_buffer_array i c) value;
+    let c_value = malloc @@ (Unsigned.UInt32.of_int (Ctypes.sizeof BitBytes.Type.t)) in
+    let ulen = Bytes.length value in
+    let o_value =  Ctypes.coerce (ptr void) (ptr BitBytes.Type.t) c_value in
+    let c_buffer = malloc @@ (Unsigned.UInt32.of_int (ulen*(Ctypes.sizeof char ))) in
+    let o_buffer = Ctypes.coerce (ptr void) (ptr char) c_buffer in
+    let o_buffer_array =  Ctypes.CArray.from_ptr o_buffer ulen in
+    Bytes.iteri (fun i c -> Ctypes.CArray.set o_buffer_array i c) value;
 
-  let  _ = BitBytes.set_length (!@ o_value) (Unsigned.UInt32.of_int ulen) in
-  let  _ = BitBytes.set_maximun (!@ o_value) (Unsigned.UInt32.of_int ulen) in
-  let  _ = BitBytes.set_release (!@ o_value) false in
-  let  _ = BitBytes.set_buffer (!@ o_value) o_buffer in
+    let  _ = BitBytes.set_length (!@ o_value) (Unsigned.UInt32.of_int ulen) in
+    let  _ = BitBytes.set_maximun (!@ o_value) (Unsigned.UInt32.of_int ulen) in
+    let  _ = BitBytes.set_release (!@ o_value) false in
+    let  _ = BitBytes.set_buffer (!@ o_value) o_buffer in
 
-  let _ = SKeyBValue.set_key (!@ o_data) o_key in
-  let _ = SKeyBValue.set_value (!@ o_data) (!@ o_value) in
-  let s = (!@ o_data) in
-  let res = write dw s in
-  let _ = free @@ to_voidp @@ o_data in res
+    let _ = SKeyBValue.set_key (!@ o_data) o_key in
+    let _ = SKeyBValue.set_value (!@ o_data) (!@ o_value) in
+    let s = (!@ o_data) in
+    let res = write dw s in
+    let _ = free @@ to_voidp @@ o_data in
+    res
 
 
   let write dw key bs =
