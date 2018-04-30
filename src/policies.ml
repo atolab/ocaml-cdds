@@ -169,6 +169,7 @@ let from_policies ps =
 
 module QosPattern = struct
   let state = [Policy.Reliability Reliability.reliable; Policy.Durability Durability.transient_local; Policy.History  (History.keep_last 1)]
+  let soft_state = [Policy.Reliability Reliability.best_effort; Policy.Durability Durability.volatile; Policy.History  (History.keep_last 1)]
   let state_n n = [Policy.Reliability Reliability.reliable; Policy.Durability Durability.transient_local; Policy.History  (History.keep_last n)]
   let event = [Policy.Reliability Reliability.reliable; Policy.Durability Durability.volatile; Policy.History History.keep_all]
 end
