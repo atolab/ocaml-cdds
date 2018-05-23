@@ -31,5 +31,6 @@ module Subscriber = Entities.Subscriber
 module Publisher = Entities.Publisher
 module Writer = Entities.Writer
 module Reader = Entities.Reader
+module ReaderSKSV = Entities.Reader_sksv
 
 module QosPattern = Policies.QosPattern

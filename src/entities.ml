@@ -14,7 +14,12 @@ let alloc =
 let free_sample =
   foreign ~release_runtime_lock:true "dds_sample_free" (ptr void @-> ptr TopicDescriptor.t @-> FreeOption.t @-> returning void )
 
+let malloc =
+  foreign ~release_runtime_lock:true "malloc" (uint32_t @-> returning @@ ptr void)
 
+
+let free =
+  foreign ~release_runtime_lock:true "free" (ptr void @-> returning void )
 (*
  * Participant Operations
  *)
@@ -48,6 +53,7 @@ let find_topic =
 module Topic  : sig
   type t
   val make : ?policies:Policy.t list -> Entity.t -> string ->  Entity.t
+  val make_sksv : ?policies:Policy.t list -> Entity.t -> string ->  Entity.t
   val find : Entity.t -> string -> Entity.t option
 end = struct
   type t = Entity.t
@@ -55,6 +61,10 @@ end = struct
   let make ?(policies=[]) dp name  =
     let qos = from_policies policies in
     create_topic dp SKeyBValue.Type.desc name qos Listener.none
+
+  let make_sksv ?(policies=[]) dp name  =
+      let qos = from_policies policies in
+      create_topic dp SKeySValue.Type.desc name qos Listener.none
 
   let find dp name =
     match find_topic dp name with
@@ -121,6 +131,34 @@ module Writer = struct
     let qos = from_policies policies in
     create_writer pub topic qos Listener.none
 
+  let write_skeysvalue dw key value =
+    (* let c_data = malloc (Unsigned.UInt32.of_int (Ctypes.sizeof SKeySValue.Type.t)) in
+    let o_data = Ctypes.coerce (ptr void) (ptr SKeySValue.Type.t) c_data in
+
+    let ckeysize = String.length key + 1 in
+    let c_key = malloc (Unsigned.UInt32.of_int (ckeysize*(Ctypes.sizeof (char)))) in
+    let o_key =  Ctypes.coerce (ptr void) (ptr char) c_key in
+    String.iteri (fun i c -> (o_key +@ i) <-@ c) key;
+    let _ = (o_key +@ (ckeysize-1)) <-@ '\x00' in ();
+
+    let cvalsize = String.length value + 1 in
+    let c_val = malloc (Unsigned.UInt32.of_int (cvalsize*(Ctypes.sizeof (char)))) in
+    let o_val =  Ctypes.coerce (ptr void) (ptr char) c_val in
+    String.iteri (fun i c -> (o_val +@ i) <-@ c) value;
+    let _ = (o_val +@ (cvalsize-1)) <-@ '\x00' in ();
+
+    let _ = SKeySValue.set_key (!@ o_data) o_key in
+    let _ = SKeySValue.set_value (!@ o_data)  o_val in
+
+       let s = (!@ o_data) in *)
+    (* let k =  SKeySValue.make_char_array key in
+    let v = SKeySValue.make_char_array value in *)
+    let s = SKeySValue.make key value in
+    let res = write dw s in
+    (* let _ = free @@ to_voidp @@ o_val in
+    let _ = free @@ to_voidp @@ o_key in
+    let _ = free @@ to_voidp @@ o_data in *)
+    res
 
   let write_string dw key value =
     let xs = CArray.make char (String.length value) in
@@ -131,12 +169,7 @@ module Writer = struct
     write dw s
 
 
-  let malloc =
-    foreign ~release_runtime_lock:true "malloc" (uint32_t @-> returning @@ ptr void)
 
-
-  let free =
-    foreign ~release_runtime_lock:true "free" (ptr void @-> returning void )
 
   let write_alloc dw key value =
     let c_data = malloc (Unsigned.UInt32.of_int (Ctypes.sizeof SKeyBValue.Type.t)) in
@@ -597,6 +630,122 @@ module Reader = struct
       begin
         let info = SampleInfo.make_array n in
         let samples = SKeyBValue.make_ptr_array n in
+        let read_samples = action dr.eid samples info n (StatusSelector.to_int selector) in
+        let kvis = collect_samples [] (Int32.to_int read_samples) samples info in
+        ignore (return_loan dr.eid samples read_samples) ;
+        kvis
+      end
+
+  let sread_or_take_n dr n action selector timeout =
+    let _ =
+      if (StatusSelector.to_int selector) = dr.selector then
+        ignore (waitset_wait dr.ws timeout)
+      else
+        begin
+          ignore (waitset_detach dr.ws dr.rc) ;
+          ignore (waitset_detach dr.ws dr.ws) ;
+          ignore (delete_entity dr.rc) ;
+          ignore (delete_entity dr.ws) ;
+          dr.rc <- create_read_condition dr.eid (StatusSelector.to_int selector) ;
+          dr.selector <- StatusSelector.to_int selector ;
+          let _ = waitset_attach_condition dr.ws dr.rc in
+          ignore  (waitset_wait dr.ws timeout)
+        end
+    in
+    let _ = waitset_wait dr.ws timeout in
+    read_or_take_n dr n action selector
+
+  let read_n ?(selector=StatusSelector.fresh) dr n = read_or_take_n dr n read_mask_wl selector
+  let take_n ?(selector=StatusSelector.fresh) dr n = read_or_take_n dr n take_mask_wl selector
+
+  let read ?(selector=StatusSelector.fresh) dr = read_n ~selector:selector dr dr.max_samples
+  let take ?(selector=StatusSelector.fresh) dr = take_n ~selector:selector dr dr.max_samples
+
+  let sread_n ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr n = sread_or_take_n dr n read_mask_wl selector timeout
+  let stake_n ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr n = sread_or_take_n dr n take_mask_wl selector timeout
+
+  let sread ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr  = sread_n ~selector:selector ~timeout:timeout dr dr.max_samples
+  let stake ?(timeout=Duration.infinity) ?(selector=StatusSelector.fresh) dr = stake_n ~selector:selector ~timeout:timeout dr dr.max_samples
+
+  let react dr callback =
+    dr.on_data_available <- (fun _ _ ->  callback (DataAvailable dr)) ;
+    dr.on_liveliness_changed <- (fun _ s _ ->  callback @@ LivelinessChanged (dr, s)) ;
+    lset_data_available dr.listener dr.on_data_available ;
+    lset_liveliness_changed dr.listener dr.on_liveliness_changed ;
+    ignore (set_listener dr.eid dr.listener)
+
+  let deaf dr  = reset_listener dr.listener
+
+end
+
+module Reader_sksv = struct
+  type daf = int32
+
+  type t = {
+    eid: Entity.t;
+    ws : Entity.t;
+    mutable rc : Entity.t;
+    mutable selector : int;
+    samples: SKeySValue.Type.t structure ptr carray;
+    info: SampleInfo.Type.t structure carray;
+    max_samples: int;
+    listener: Listener.t structure ptr;
+    mutable on_data_available : Entity.t -> unit ptr -> unit;
+    mutable on_liveliness_changed: Entity.t -> LivelinessChanged.status structure -> unit ptr -> unit
+  }
+
+  type event =
+      | DataAvailable of  t
+      | LivelinessLost of t * LivelinessLost.status structure
+      | LivelinessChanged of  t * LivelinessChanged.status structure
+      | PublicationMatched of  t * PublicationMatched.status structure
+      | SubscriptionMatched of t * SubscriptionMatched.status structure
+
+
+  let make ?(max_samples=128) ?(policies=QosPattern.state) sub topic  =
+    let qos = from_policies policies in
+    let eid = create_reader sub topic qos Listener.none in
+    let p = get_participant eid in
+    let ws = create_waitset p in
+    let selector = StatusSelector.to_int StatusSelector.fresh in
+    let rc = create_read_condition eid selector in
+    let _ = waitset_attach_condition ws rc in
+    let samples = SKeySValue.make_ptr_array max_samples in
+    let info = CArray.make SampleInfo.Type.t max_samples in
+    let listener = ListenerSet.make () in
+    { eid;
+      ws;
+      rc;
+      selector;
+      samples;
+      info;
+      max_samples;
+      listener;
+      on_data_available = (fun _ _ -> ());
+      on_liveliness_changed = (fun _ _ _ -> ()) }
+
+  let read_or_take_n dr n action selector =
+    let rec collect_samples kvi n samples info  = match n with
+      | 0 -> kvi
+      | _ ->
+        let idx = n - 1 in
+        let s = !@(CArray.get samples idx) in
+        let i = CArray.get info idx in
+        let v = (SKeySValue.value s) in
+        let k = SKeySValue.key s in
+        collect_samples (((k, v), i)::kvi) (n-1) samples info
+    in
+    if n <= dr.max_samples then
+      begin
+        let read_samples = action dr.eid dr.samples dr.info dr.max_samples (StatusSelector.to_int selector) in
+        let kvis = collect_samples [] (Int32.to_int read_samples) dr.samples dr.info in
+        ignore (return_loan dr.eid dr.samples read_samples) ;
+        kvis
+      end
+    else
+      begin
+        let info = SampleInfo.make_array n in
+        let samples = SKeySValue.make_ptr_array n in
         let read_samples = action dr.eid samples info n (StatusSelector.to_int selector) in
         let kvis = collect_samples [] (Int32.to_int read_samples) samples info in
         ignore (return_loan dr.eid samples read_samples) ;
