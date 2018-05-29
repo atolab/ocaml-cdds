@@ -6,19 +6,18 @@ let topic = Topic.make dp name
 let pub = Publisher.make dp
 let sub = Subscriber.make dp
 
-let writer () =
+let writer hz =
   let w = Writer.make dp topic in
   let rec loop =function
     | 0 -> ()
     | n ->
       let k = "ocaml" ^ (string_of_int (n mod 10)) in
       let v = "rulez-" ^ (string_of_int n) in
-    let r = Writer.write_string w k v in
-    Printf.printf "Write %d returned  %d"  n @@ Int32.to_int r ;
-    print_endline "" ;
-    Unix.sleepf 0.01
-    ;
-    loop @@ n - 1
+      let r = Writer.write_string w k v in
+      Printf.printf "Write %d returned  %d"  n @@ Int32.to_int r ;
+      print_endline "" ;
+      Unix.sleepf (1.0 /. hz) ;
+      loop @@ n - 1
   in loop 100000 ;
 
   print_endline "Works!" ;
@@ -58,14 +57,22 @@ let lreader () =
       loop @@ n - 1
   in loop 100000
 
-let usage () = ignore( print_endline "USAGE:\n\t simple <pub | sub | sub-wl | sub-ws>" )
+let usage () = ignore( print_endline "USAGE:\n\t simple <pub[@hz] | sub | sub-wl | sub-ws>\nexamples: \n\tsimple.exe pub@100\n")
 
 let _ =
   let argv = Sys.argv in
   if Array.length argv < 2 then usage ()
   else
-  match Array.get argv 1 with
-  | "pub" -> writer ()
-  | "sub" -> sreader ()
-  | "sub-wl" -> lreader ()
-  | _ -> usage ()
+    begin
+      let xs = String.split_on_char '@' (Array.get argv 1) in
+
+      match List.hd xs  with
+      | "pub" ->
+        let hz =
+          if List.length xs = 1 then 1.0
+          else float_of_string @@ List.nth xs 1
+        in writer hz
+      | "sub" -> sreader ()
+      | "sub-wl" -> lreader ()
+      | _ -> usage ()
+    end
