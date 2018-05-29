@@ -137,12 +137,25 @@ module Partition = struct
   let singleton p = {pid = PolicyId.partition; ps = [p]}
 end
 
+module Ordering = struct 
+  module Kind = struct 
+    include Int32
+    let t = int32_t
+    let recv_time = of_int 0
+    let snd_time = of_int 1
+  end
+  type t = { pid : PolicyId.t; id : Kind.t}
+  let recv_time = { pid = PolicyId.destination_order; id = Kind.recv_time }
+  let snd_time  = {pid = PolicyId.destination_order; id = Kind.snd_time }
+end
+
 module Policy = struct
   type t =
       Durability of Durability.t
     | Reliability of Reliability.t
     | History of History.t
     | Partition of Partition.t
+    | Ordering of Ordering.t
 end
 
 let x: Policy.t = Policy.Durability Durability.persistent
@@ -156,7 +169,8 @@ let set_policies qos plist =
        | Policy.History h -> qset_history qos h.kind h.depth
        | Policy.Reliability r -> qset_reliability qos r.kind r.blocking_time
        | Policy.Durability d -> qset_durability qos d.kind
-       | Policy.Partition p -> qset_partition qos p.ps)
+       | Policy.Partition p -> qset_partition qos p.ps
+       | Policy.Ordering o -> qset_destination_order qos o.id)
     plist
 
 let from_policies ps =
@@ -168,8 +182,30 @@ let from_policies ps =
     qos
 
 module QosPattern = struct
-  let state = [Policy.Reliability Reliability.reliable; Policy.Durability Durability.transient_local; Policy.History  (History.keep_last 1)]
-  let soft_state = [Policy.Reliability Reliability.best_effort; Policy.Durability Durability.volatile; Policy.History  (History.keep_last 1)]
-  let state_n n = [Policy.Reliability Reliability.reliable; Policy.Durability Durability.transient_local; Policy.History  (History.keep_last n)]
-  let event = [Policy.Reliability Reliability.reliable; Policy.Durability Durability.volatile; Policy.History History.keep_all]
-end
+  let state = [
+    Policy.Reliability Reliability.reliable; 
+    Policy.Durability Durability.transient_local; 
+    Policy.History  (History.keep_last 1); 
+    Policy.Ordering Ordering.snd_time]
+  
+  let soft_state = [
+    Policy.Reliability Reliability.best_effort; 
+    Policy.Durability Durability.volatile; 
+    Policy.History  (History.keep_last 1); 
+    Policy.Ordering Ordering.snd_time]
+  
+  let state_n n = [Policy.Reliability Reliability.reliable; 
+    Policy.Durability Durability.transient_local; 
+    Policy.History  (History.keep_last n); 
+    Policy.Ordering Ordering.snd_time]
+  
+  let event = [Policy.Reliability Reliability.reliable; 
+    Policy.Durability Durability.volatile; 
+    Policy.History History.keep_all;  
+    Policy.Ordering Ordering.snd_time]
+  
+  let event = [Policy.Reliability Reliability.reliable; 
+    Policy.Durability Durability.volatile; 
+    Policy.History History.keep_all; 
+    Policy.Ordering Ordering.snd_time]
+  end
