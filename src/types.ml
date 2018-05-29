@@ -111,12 +111,17 @@ module SKeySValue = struct
   module Type = struct
     type t
     let t : t structure typ = structure "dds_bit_SKeySValue"
-    let key  = field t "key" string
-    let value = field t "value" string
+    let key  = field t "key" (string)
+    let value = field t "value" (string)
     let () = seal t
 
     let desc = foreign_value "dds_bit_SKeySValue_desc" TopicDescriptor.t
   end
+
+  let make_char_array s =
+    let cs = CArray.make char (String.length s) in
+    String.iteri (fun i c -> CArray.set cs i c) s ;
+    cs
 
   let make k v =
     let e = make Type.t in
@@ -169,6 +174,11 @@ module BitBytes = struct
     setf s Type._buffer ptr ;
     setf s Type._release false ;
     s
+
+  let set_maximun bb ulen = setf bb Type._maximum ulen
+  let set_length bb ulen = setf bb Type._length ulen
+  let set_release bb rel = setf bb Type._release rel
+  let set_buffer bb buf = setf bb Type._buffer buf
 
 end
 
