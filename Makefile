@@ -1,9 +1,9 @@
 .PHONY: all demo clean test
 
-BUILD=jbuilder build --dev
-CLEAN= jbuilder clean
-TEST=jbuilder runtest -j1 --no-buffer --dev
-INSTALL=jbuilder install
+BUILD=dune build
+CLEAN= dune clean
+TEST=dune runtest -j1 --no-buffer
+INSTALL=dune install
 
 all:
 		${BUILD}

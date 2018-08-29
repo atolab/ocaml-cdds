@@ -1,0 +1,13 @@
+(library
+ (name            cdds)
+  (public_name     cdds)
+  (flags         (-thread))
+  (libraries       ctypes ctypes.foreign lwt lwt.unix)
+  (c_flags         (:include c_flags.sexp))
+  (c_library_flags (:include c_library_flags.sexp)))
+
+
+(rule
+  (targets c_flags.sexp c_library_flags.sexp)
+  (deps    (:d config/discover.exe))
+  (action  (run %{d} -ocamlc %{ocamlc})))

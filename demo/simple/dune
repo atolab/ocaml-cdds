@@ -1,0 +1,4 @@
+(executables
+ (names simple)
+  (flags         (-thread))
+  (libraries  lwt lwt.unix cdds))
