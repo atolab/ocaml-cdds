@@ -3,7 +3,7 @@
 BUILD=dune build
 CLEAN= dune clean
 TEST=dune runtest -j1 --no-buffer
-INSTALL=dune install
+INSTALL=opam pin add cdds . -w -k path
 
 all:
 		${BUILD}
