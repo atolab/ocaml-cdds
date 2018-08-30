@@ -1,28 +1,27 @@
 # -*-Makefile-*-
 #!/bin/bash
 
-
+P=$(pwd)
 if [ "$(uname)" == "Darwin" ]; then
     BIT_LIB=libddstubs.dylib
-    echo "let on_linux = false" > src/config/osconfig.ml
-    echo "let on_macos = true" >> src/config/osconfig.ml
+    echo "let on_linux = false" > $P/src/config/osconfig.ml
+    echo "let on_macos = true" >> $P/src/config/osconfig.ml
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
     BIT_LIB=libddstubs.so
-    echo "let on_linux = true" > src/config/osconfig.ml
-    echo "let on_macos = false" >> src/config/osconfig.ml
+    echo "let on_linux = true" > $P/src/config/osconfig.ml
+    echo "let on_macos = false" >> $P/src/config/osconfig.ml
 fi
 
-pushd &> /dev/null
-cd stubs
-rm -Rf build
-mkdir build
-cd build
-cmake ..
-make
-if [ "$(uname)" == "Darwin" ]; then
-    cp ${BIT_LIB} /usr/local/lib
-elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-    sudo cp ${BIT_LIB} /usr/local/lib
-fi
-
-popd &> /dev/null
+# pushd &> /dev/null
+# cd stubs
+# rm -Rf build
+# mkdir build
+# cd build
+# cmake ..
+# make
+# if [ "$(uname)" == "Darwin" ]; then
+#     cp ${BIT_LIB} /usr/local/lib
+# elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+#     sudo cp ${BIT_LIB} /usr/local/lib
+# fi
+# popd &> /dev/null
