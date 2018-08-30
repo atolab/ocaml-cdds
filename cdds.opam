@@ -10,7 +10,6 @@ dev-repo:     "https://github.com/atolab/ocaml-cdds.git"
 
 
 build: [
- ["./configure"]
  ["dune" "subst"] {pinned}
  ["dune" "-p" name "-j" jobs]
 ]
